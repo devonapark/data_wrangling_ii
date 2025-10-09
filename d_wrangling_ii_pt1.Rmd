@@ -4,6 +4,211 @@ output: github_document
 date: "2025-10-09"
 ---
 
+His usual starting point
+```{r}
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+```
 
 Pulling data from online (rather than using read_csv)
+
+```{r}
+library(tidyverse)
+library(rvest)
+library(httr)
+
+```
+
+##Scraping the web 
+
+Import NSDUH data from the web
+
+```{r}
+
+#Define URL 
+
+url = "https://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+
+#Read URL
+drug_use_html = read_html(url)
+```
+
+This is an "easy" case
+
+```{r}
+
+#Pull out everything that is a table 
+
+drug_use_html |> 
+  html_table()
+
+#[[x]] is how lists are indexed
+```
+
+What if I only care about the first table? Or the nth? 
+```{r}
+drug_use_html |> 
+  html_table() |> 
+  first()
+
+drug_use_html |> 
+  html_table() |> 
+  nth(7)
+
+
+ndsuh_df = 
+  drug_use_html |> 
+  html_table() |> 
+  first() |> 
+  slice(-1)     #removes the first row
+
+#this is not tidy! We had superscripts with a,b,c, etc that we need to remove. additionally column names have variable information 
+```
+
+
+Slightly harder case:
+```{r}
+url = "https://www.imdb.com/list/ls070150896/"
+
+sw_html = 
+  read_html(url)
+```
+
+
+Now use selector (selector gadget) to pull out the elements that I care about! 
+
+```{r}
+title_vec = 
+  sw_html |> 
+  html_elements(".ipc-title-link-wrapper .ipc-title__text--reduced") |> #using gadget we get a specific lik to just the titles
+  html_text()
+
+metascore_vec =
+  sw_html |> 
+  html_elements(".metacritic-score-box") |>  
+  html_text()
+
+
+runtime_vec =
+  sw_html |> 
+  html_elements(".dli-title-metadata-item:nth-child(2)") |>  
+  html_text()
+
+
+#If you want multiple things, probably import separately and then combine
+
+
+```
+
+
+Put together in one dataframe
+
+```{r}
+sw_df = 
+  tibble(
+    title = title_vec,
+    metascore = metascore_vec,
+    runtime = runtime_vec
+  )
+```
+
+Everytime you press knit --> it will go to the internet and pull data. So if you are using big data, you may want to limit the number of times you knit (because it will start to take a while)
+
+
+##Get data from API
+
+Get NYC water consumption dataset 
+```{r}
+#this uses httr package
+
+nyc_water_df = 
+  GET("https://data.cityofnewyork.us/resource/ia2d-e54m.csv") |> 
+  content("parsed")
+
+#without content() it truly jsut gives comma separated values. 
+```
+
+
+Make some plots
+
+```{r}
+nyc_water_df |> 
+  ggplot(aes(x = year, y = nyc_consumption_million_gallons_per_day))+
+  geom_point()
+```
+
+Using APIs can get a little tricky...
+You ay need to create an account and get an app token
+
+```{r, eval = FALSE}
+#then you need to update your code
+
+ex_df = 
+  GET("API CSV LINK",
+      query = list("app_token" = "MY TOKEN")
+      ) |> 
+  content("parsed") 
+
+
+#You could also download data as a CSV if you wanted to
+```
+
+
+## Another example: Pokemon
+
+```{r}
+poke = 
+  GET("http://pokeapi.co/api/v2/pokemon/1") |> 
+  content()
+
+poke[[4]]
+#the one here tells me which pokemon I am looking at 
+
+
+poke_all = 
+  GET("https://pokeapi.co/api/v2/pokemon/ditto") |> 
+  content()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
