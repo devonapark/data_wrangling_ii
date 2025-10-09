@@ -1,0 +1,9 @@
+---
+title: "data_wrangling_ii"
+output: github_document
+date: "2025-10-09"
+---
+
+
+Pulling data from online (rather than using read_csv)
+
