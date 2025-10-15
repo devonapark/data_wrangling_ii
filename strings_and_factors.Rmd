@@ -172,10 +172,79 @@ vec_sex = fct_relevel(vec_sex, "male") #switches the order so what is put here b
 ```
 
 
+## Revisit NSDUH
+
+Import NSDUH data from the web:
+
+```{r}
+
+#Define URL 
+
+url = "https://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+
+#Read URL
+drug_use_html = read_html(url)
+```
+
+This is an "easy" case
+
+```{r}
+
+#Pull out everything that is a table (only a table)
+
+nsduh_df = 
+  drug_use_html |> 
+  html_table() |> 
+  first() |> 
+  slice(-1) 
+
+#[[x]] is how lists are indexed
+```
+
+Now do the tidying...
+
+```{r}
+marj_df = 
+  nsduh_df |>
+  select(-contains("P Value")) |> #get rid of pvalue column
+  pivot_longer(
+    -State, #pivot everything but the state variable
+    names_to = "age_year", 
+    values_to = "percent") |>
+  separate(age_year, into = c("age", "year"), sep = "\\(") |> #separate by delimeter (. (ise double backslash. gets rid of "(".)
+  mutate(
+    year = str_remove(year, "\\)"),
+    percent = str_replace(percent, "[a-c]$", ""), #remove anything at the tail end. If there is some other string variable that exists that doesnt match, i want it to still be there so i can find it later. This does not automatically make it a numeric variable
+    percent = as.numeric(percent)) |>
+  filter(!(State %in% c("Total U.S.", "Northeast", "Midwest", "South", "West"))) #to make it not have the aggregated rows
+
+#! says NOT.
+#could write percent in mutate in one line:  as.numeric(str_replace(percent, "[a-c]$", ""))
+```
+
+== looks for an exact match 
+%in% when you have a collection of options (state can equal anything inside this set)
 
 
+Let's make a quick plot!
+```{r}
+marj_df |>
+  filter(age == "12-17") |> 
+  ggplot(aes(x = State, y = percent, color = year)) + 
+    geom_point() + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) #rotate x axis labels
+#this defaults with state on x axis by aphabetical
 
 
+marj_df |>
+  filter(age == "12-17") |> 
+  mutate(State = fct_reorder(State, percent)) |> 
+  ggplot(aes(x = State, y = percent, color = year)) + 
+    geom_point() + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+#didnt include mutate in datacleaning step becuase i am not sure i want it to exist forever. i only want it in the graph i am making in this specific step
+```
 
 
 
