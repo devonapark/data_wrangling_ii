@@ -105,7 +105,7 @@ str_detect(string_vec, "[0-9]")
 str_detect(string_vec, "[0-9][a-zA-Z]") #same as writing [0123456789]
 str_detect(string_vec, "^[0-9][a-zA-Z]") 
 
-
+str_detect(string_vec, "^[0-9][a-zA-Z]+") #plus sign says it can have multiple of these cases
 #fairly often used pattern 
 ```
 
@@ -245,6 +245,103 @@ marj_df |>
 
 #didnt include mutate in datacleaning step becuase i am not sure i want it to exist forever. i only want it in the graph i am making in this specific step
 ```
+
+## Restaurant Inspections
+
+```{r}
+data('rest_inspec')
+#type in console to view: rest_inspec |> view()
+```
+
+This is a fun dataset...
+
+```{r}
+rest_inspec |> 
+  group_by(boro, grade) |> 
+  summarise(n = n()) |> 
+  pivot_wider(
+    names_from = grade,
+    values_from = n
+  )
+```
+
+
+Update to include only boros and grades we care about 
+```{r}
+rest_inspec = 
+  rest_inspec |> 
+  filter(grade %in% c("A", "B", "C", "D"),
+         boro != 0
+         )
+
+#then re run code chunk above
+```
+
+
+Look for pizza places
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "Pizza")) |> 
+  group_by(boro, grade) |> 
+  summarise(n = n()) |> 
+  pivot_wider(
+    names_from = grade,
+    values_from = n)
+```
+
+How to make it more inclusive (and correct)
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][iI][zZ][Zz][Aa]")) |> 
+  group_by(boro, grade) |> 
+  summarise(n = n()) |> 
+  pivot_wider(
+    names_from = grade,
+    values_from = n)
+
+#better way would be to mutate and force everything uppercase
+```
+
+
+Let's make a plot!
+
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][iI][zZ][Zz][Aa]")) |>
+  mutate(boro = fct_infreq(boro)) |> 
+  ggplot(aes(x = boro, fill = grade)) +
+  geom_bar()
+  
+#fact_infreq = order based on descending frequency 
+```
+
+
+This does not work as intended
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][iI][zZ][Zz][Aa]")) |>
+  mutate(boro = fct_infreq(boro),
+         boro = str_replace(boro, "Manhattan", "The City")) |> #implicitly converted it back to a string so when it goes to ggplot, it just does it by alphabetica
+  ggplot(aes(x = boro, fill = grade)) +
+  geom_bar()
+```
+
+This does work:
+```{r}
+rest_inspec |> 
+  filter(str_detect(dba, "[Pp][iI][zZ][Zz][Aa]")) |>
+  mutate(boro = fct_infreq(boro),
+         boro = fct_recode(boro, "The City"= "Manhattan")) |> #just relabels the factor
+  ggplot(aes(x = boro, fill = grade)) +
+  geom_bar()
+```
+
+
+
+
+
+
+
 
 
 
